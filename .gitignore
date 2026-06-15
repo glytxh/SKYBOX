@@ -27,3 +27,6 @@ cache/metadata/*
 # Editor junk
 .vscode/
 .idea/
+
+# macOS icon build folder
+SKYBOX.iconset/
