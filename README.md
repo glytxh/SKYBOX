@@ -39,6 +39,3 @@ Blend mode only works with atlas or survey field scales.
 
 SKYBOX keeps only the newest five FITS files in cache/fits.
 
-## Status
-
-Ready for Mac app wrapping.
