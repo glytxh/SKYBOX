@@ -196,6 +196,9 @@ def run_query_once():
 
     target_query = console.input("[bold cyan]Target[/bold cyan] name or ICRS coordinates › ").strip()
 
+    if target_query.lower() in {"q", "quit", "exit"}:
+        return None
+
     if not target_query:
         raise ValueError("No target entered.")
 
@@ -332,7 +335,12 @@ def run_app():
 
     while True:
         try:
-            target, survey, field_preset, fetch_result, metadata = run_query_once()
+            query_result = run_query_once()
+
+            if query_result is None:
+                break
+
+            target, survey, field_preset, fetch_result, metadata = query_result
             result = viewer_loop(target, survey, field_preset, fetch_result, metadata)
 
             if result == "quit":

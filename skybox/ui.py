@@ -49,9 +49,9 @@ def show_title():
         body.append("\n")
 
     body.append("\n")
-    body.append("v1.2", style="bold rgb(235,235,245)")
+    body.append(f"v{APP_VERSION}", style="bold rgb(235,235,245)")
     body.append(" · ", style="dim")
-    body.append("Render Modes", style="bold rgb(245,95,220)")
+    body.append(APP_CODENAME, style="bold rgb(245,95,220)")
     body.append("\n\n")
 
     body.append("Object name or ICRS coordinates", style="rgb(220,235,245)")
@@ -70,7 +70,7 @@ def show_title():
     body.append(" / ", style="dim")
     body.append("blend", style="bold rgb(245,95,220)")
 
-    body.append("      ", style="dim")
+    body.append("\n")
 
     body.append("Render: ", style="dim rgb(150,165,185)")
     body.append("basic", style="rgb(220,235,245)")
@@ -78,6 +78,13 @@ def show_title():
     body.append("rich", style="bold rgb(95,220,255)")
     body.append(" · ", style="dim")
     body.append("block", style="bold rgb(190,120,255)")
+
+    body.append("      ", style="dim")
+
+    body.append("View: ", style="dim rgb(150,165,185)")
+    body.append("small", style="rgb(220,235,245)")
+    body.append(" · ", style="dim")
+    body.append("wide", style="bold rgb(95,220,255)")
     body.append("\n")
 
     panel = Panel(
@@ -117,6 +124,9 @@ def choose_survey():
     console.print("[bold yellow]Note:[/bold yellow] blend mode only works with [bold]atlas[/bold] or [bold]survey[/bold] field scales.", style="dim")
     choice = console.input("\n[bold cyan]Select band[/bold cyan] [short/mid/long/blend] › ").strip().lower()
 
+    if choice in {"q", "quit", "exit"}:
+        raise KeyboardInterrupt
+
     if choice == "":
         choice = "blend"
 
@@ -149,6 +159,9 @@ def choose_field_preset():
 
     console.print("[bold yellow]Note:[/bold yellow] blend requires [bold]atlas[/bold] or [bold]survey[/bold]. Use short/mid/long for core, field, or wide.", style="dim")
     choice = console.input("\n[bold cyan]Select field[/bold cyan] [core/field/wide/atlas/survey] › ").strip().lower()
+
+    if choice in {"q", "quit", "exit"}:
+        raise KeyboardInterrupt
 
     if choice == "":
         choice = "atlas"

@@ -1,4 +1,4 @@
 APP_NAME = "SKYBOX"
-APP_VERSION = "1.2"
-APP_CODENAME = "Render Modes"
+APP_VERSION = "1.4"
+APP_CODENAME = "Polish"
 APP_TAGLINE = "Pan-STARRS terminal FITS viewer"
