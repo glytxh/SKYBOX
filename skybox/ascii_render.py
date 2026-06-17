@@ -6,8 +6,69 @@ from rich.text import Text
 from rich.console import Console
 
 
+# Deliberately distinct render ramps.
+# basic = original SKYBOX punctuation look
+# rich  = visibly denser ASCII-only scientific printout look
+# block = shaded mosaic look
 ASCII_RAMP = "     ...,,,:::;;;iiiIII!!!+++***###%%%@@@"
+RICH_ASCII_RAMP = "     .,:;irsXA253hMHGS#9B&@"
+BLEND_RICH_ASCII_RAMP = "     ···...,,,:::;;;iiiIII!!!+++***###%%@@"
+BLOCK_ASCII_RAMP = "     ░░▒▒▓▓██"
 
+
+def get_ascii_ramp(render_mode="basic", colour_blend=False):
+    mode = (render_mode or "basic").strip().lower()
+
+    if mode == "block":
+        return BLOCK_ASCII_RAMP
+
+    if mode == "rich":
+        if colour_blend:
+            return BLEND_RICH_ASCII_RAMP
+        return RICH_ASCII_RAMP
+
+    return ASCII_RAMP
+
+
+def char_for_render_mode(value, render_mode="basic", colour_blend=False):
+    value = float(np.clip(value, 0, 1))
+    ramp = get_ascii_ramp(render_mode, colour_blend=colour_blend)
+    idx = int(value * (len(ramp) - 1))
+    return ramp[idx]
+
+
+def char_for_value(value, render_mode="basic", colour_blend=False):
+    return char_for_render_mode(
+        value,
+        render_mode=render_mode,
+        colour_blend=colour_blend,
+    )
+
+
+
+
+
+
+
+
+def char_for_rgb_render_mode(value, render_mode="basic"):
+    """
+    Blend/colour mode uses a separate glyph choice.
+
+    RGB already carries visual information, so rich mode should stay clean:
+    punctuation and soft marks, not dense letters/numbers.
+    """
+    value = float(np.clip(value, 0, 1))
+
+    if render_mode == "block":
+        ramp = BLOCK_ASCII_RAMP
+    elif render_mode == "rich":
+        ramp = BLEND_RICH_ASCII_RAMP
+    else:
+        ramp = ASCII_RAMP
+
+    idx = int(value * (len(ramp) - 1))
+    return ramp[idx]
 
 def clean_image(data):
     data = np.array(data, dtype=float)
@@ -251,12 +312,6 @@ def colour_for_single_band(value, colour_mode):
     return base, base, base
 
 
-def char_for_value(value):
-    value = float(np.clip(value, 0, 1))
-    idx = int(value * (len(ASCII_RAMP) - 1))
-    return ASCII_RAMP[idx]
-
-
 def palette_from_fits_path(fits_path):
     """
     Infer single-band colour palette from SKYBOX cached FITS filename.
@@ -280,15 +335,20 @@ def palette_from_fits_path(fits_path):
 
 
 
-def text_lines_from_scalar(small, palette="white"):
+
+def text_lines_from_scalar(small, palette="white", render_mode="basic"):
     """
     Convert a normalized 2D array into Rich-coloured ASCII lines.
-    Stable simple palette version.
 
     palette:
       blue  = short / g
       white = mid / i
       red   = long / y
+
+    render_mode:
+      basic = original punctuation ramp
+      rich  = denser symbolic ramp
+      block = shaded block ramp
     """
     lines = []
 
@@ -297,8 +357,7 @@ def text_lines_from_scalar(small, palette="white"):
 
         for value in row:
             value = float(np.clip(value, 0, 1))
-            index = min(len(ASCII_RAMP) - 1, int(value * (len(ASCII_RAMP) - 1)))
-            char = ASCII_RAMP[index]
+            char = char_for_render_mode(value, render_mode=render_mode, colour_blend=False)
 
             if palette == "blue":
                 r = int(10 + value * 70)
@@ -321,7 +380,6 @@ def text_lines_from_scalar(small, palette="white"):
         lines.append(line)
 
     return lines
-
 
 def apply_rgb_display_settings(rgb, settings):
     """
@@ -349,7 +407,8 @@ def apply_rgb_display_settings(rgb, settings):
     return np.clip(rgb, 0, 1)
 
 
-def text_lines_from_rgb(rgb):
+def text_lines_from_rgb(rgb, render_mode="basic"):
+    colour_blend = True
     intensity = luminance(rgb)
     intensity = np.clip(intensity, 0, 1)
 
@@ -360,7 +419,7 @@ def text_lines_from_rgb(rgb):
 
         for x in range(rgb.shape[1]):
             value = float(intensity[y, x])
-            char = char_for_value(value)
+            char = char_for_rgb_render_mode(value, render_mode=render_mode)
 
             r = int(np.clip(rgb[y, x, 0], 0, 1) * 255)
             g = int(np.clip(rgb[y, x, 1], 0, 1) * 255)
@@ -486,7 +545,7 @@ def tuned_local(base_local, settings):
     return max(0.0, min(0.60, base_local * settings["local_mult"]))
 
 
-def image_to_ascii(fits_path, width=100, height=50, render_profile=None, zoom_level=1, brightness='med', contrast='med', band_key=None):
+def image_to_ascii(fits_path, width=100, height=50, render_profile=None, zoom_level=1, brightness='med', contrast='med', band_key=None, render_mode="basic"):
     settings = display_settings(brightness=brightness, contrast=contrast)
 
     if band_key == "short":
@@ -514,7 +573,7 @@ def image_to_ascii(fits_path, width=100, height=50, render_profile=None, zoom_le
         small_rgb = normalize_rgb(small_rgb)
         small_rgb = apply_rgb_display_settings(small_rgb, settings)
         small_rgb = local_contrast_boost(small_rgb, amount=tuned_local(0.10, settings))
-        return lock_lines(text_lines_from_rgb(small_rgb), width, height)
+        return lock_lines(text_lines_from_rgb(small_rgb, render_mode=render_mode), width, height)
 
     # Single-band modes: short/mid/long.
     scalar = luminance(data)
@@ -531,7 +590,7 @@ def image_to_ascii(fits_path, width=100, height=50, render_profile=None, zoom_le
             floor=tuned_floor(0.06, settings),
         )
         small = local_contrast_boost(small, amount=tuned_local(0.08, settings))
-        return lock_lines(text_lines_from_scalar(small, palette=selected_palette), width, height)
+        return lock_lines(text_lines_from_scalar(small, palette=selected_palette, render_mode=render_mode), width, height)
 
     if render_profile == "diffuse":
         small = resize_by_block(scalar, height, width, mode="mean")
@@ -545,7 +604,7 @@ def image_to_ascii(fits_path, width=100, height=50, render_profile=None, zoom_le
             floor=tuned_floor(0.04, settings),
         )
         small = local_contrast_boost(small, amount=tuned_local(0.05, settings))
-        return lock_lines(text_lines_from_scalar(small, palette=selected_palette), width, height)
+        return lock_lines(text_lines_from_scalar(small, palette=selected_palette, render_mode=render_mode), width, height)
 
     scalar = normalize_scalar(
         scalar,
@@ -558,4 +617,4 @@ def image_to_ascii(fits_path, width=100, height=50, render_profile=None, zoom_le
     small = resize_by_block(scalar, height, width, mode="mean")
     small = local_contrast_boost(small, amount=tuned_local(0.30, settings))
 
-    return lock_lines(text_lines_from_scalar(small, palette=selected_palette), width, height)
+    return lock_lines(text_lines_from_scalar(small, palette=selected_palette, render_mode=render_mode), width, height)

@@ -2,6 +2,7 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 from rich.console import Console
 from rich.panel import Panel
+from rich.align import Align
 from rich.table import Table
 from rich.text import Text
 from skybox.version import APP_NAME, APP_VERSION, APP_CODENAME
@@ -20,143 +21,76 @@ def heavy_box_line(left, fill, right, width=FRAME_WIDTH):
 
 
 def show_title():
-    import select
-    import sys
-    import termios
-    import time
-    import tty
+    console.clear()
 
-    # Warm restrained palette.
-    accent = "rgb(214,157,82)"
-    accent_dim = "rgb(150,103,61)"
-    bone = "rgb(230,221,199)"
-    eye_red = "rgb(210,64,48)"
-
-    def append_icon_row(panel_text, row, style):
-        panel_text.append("  ", style=style)
-
-        for char in row:
-            if char in {"O", "○", "◉", "◎"}:
-                panel_text.append(char, style=f"bold {eye_red}")
-            else:
-                panel_text.append(char, style=style)
-
-        panel_text.append("  ", style=style)
-
-    def build_panel(icon):
-        title = Text()
-        title.append("\n")
-        title.append("  ███████╗██╗  ██╗██╗   ██╗██████╗  ██████╗ ██╗  ██╗\n", style=f"bold {accent}")
-        title.append("  ██╔════╝██║ ██╔╝╚██╗ ██╔╝██╔══██╗██╔═══██╗╚██╗██╔╝\n", style=f"bold {accent}")
-        title.append("  ███████╗█████╔╝  ╚████╔╝ ██████╔╝██║   ██║ ╚███╔╝ \n", style=f"bold {accent}")
-        title.append("  ╚════██║██╔═██╗   ╚██╔╝  ██╔══██╗██║   ██║ ██╔██╗ \n", style=f"bold {accent}")
-        title.append("  ███████║██║  ██╗   ██║   ██████╔╝╚██████╔╝██╔╝ ██╗\n", style=f"bold {accent}")
-        title.append("  ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═════╝  ╚═════╝ ╚═╝  ╚═╝\n", style=f"bold {accent}")
-
-        panel_text = Text()
-        panel_text.append("\n")
-
-        append_icon_row(panel_text, icon[0], f"bold {bone}")
-        panel_text.append("SKY SURVEY TERMINAL", style=f"bold {accent_dim}")
-        panel_text.append("\n")
-
-        append_icon_row(panel_text, icon[1], f"bold {accent}")
-        panel_text.append("Pan-STARRS / FITS / ASCII", style="dim")
-        panel_text.append("\n")
-
-        append_icon_row(panel_text, icon[2], f"bold {bone}")
-        panel_text.append("archive cutout instrument", style="dim")
-        panel_text.append("\n")
-
-        panel_text.append(title)
-        panel_text.append("\n")
-        panel_text.append(f"  {APP_NAME} v{APP_VERSION} · {APP_CODENAME}", style=f"bold {bone}")
-        panel_text.append("\n")
-        panel_text.append("  Pan-STARRS terminal FITS viewer", style=f"bold {bone}")
-        panel_text.append("\n")
-        panel_text.append("  Object name or ICRS coordinates → FITS cutout → rich ASCII skybox", style="dim")
-        panel_text.append("\n\n")
-        panel_text.append("  DATA  ", style=f"bold {accent}")
-        panel_text.append("Pan-STARRS DR1 · MAST PS1 · CDS HiPS · SIMBAD", style=bone)
-        panel_text.append("\n")
-        panel_text.append("  CACHE ", style=f"bold {accent}")
-        panel_text.append("keeps newest five FITS files", style=bone)
-        panel_text.append("\n")
-        panel_text.append("  START ", style=f"bold {accent}")
-        panel_text.append("press any key to skip scan", style="dim")
-
-        return Panel(
-            panel_text,
-            border_style=accent,
-            padding=(0, 1),
-            width=PANEL_WIDTH,
-        )
-
-    normal_frames = [
-        ["┌·┐", "·O·", "└·┘"],
-        ["┌─┐", "·O·", "└─┘"],
-        ["┌·┐", "─O─", "└·┘"],
-        ["┌─┐", "·O·", "└─┘"],
+    logo = [
+        "███████╗██╗  ██╗██╗   ██╗██████╗  ██████╗ ██╗  ██╗",
+        "██╔════╝██║ ██╔╝╚██╗ ██╔╝██╔══██╗██╔═══██╗╚██╗██╔╝",
+        "███████╗█████╔╝  ╚████╔╝ ██████╔╝██║   ██║ ╚███╔╝ ",
+        "╚════██║██╔═██╗   ╚██╔╝  ██╔══██╗██║   ██║ ██╔██╗ ",
+        "███████║██║  ██╗   ██║   ██████╔╝╚██████╔╝██╔╝ ██╗",
+        "╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═════╝  ╚═════╝ ╚═╝  ╚═╝",
     ]
 
-    glance_left = ["┌·┐", "O··", "└·┘"]
-    glance_right = ["┌·┐", "··O", "└·┘"]
+    gradient = [
+        "rgb(60,220,255)",
+        "rgb(80,190,255)",
+        "rgb(110,155,255)",
+        "rgb(150,120,255)",
+        "rgb(200,95,255)",
+        "rgb(245,95,220)",
+    ]
 
-    def key_pressed():
-        readable, _, _ = select.select([sys.stdin], [], [], 0)
-        if readable:
-            sys.stdin.read(1)
-            return True
-        return False
+    body = Text()
+    body.append("\n")
 
-    old_settings = None
+    for index, line in enumerate(logo):
+        body.append(line, style=f"bold {gradient[index % len(gradient)]}")
+        body.append("\n")
 
-    try:
-        if sys.stdin.isatty():
-            old_settings = termios.tcgetattr(sys.stdin)
-            tty.setcbreak(sys.stdin)
+    body.append("\n")
+    body.append("v1.2", style="bold rgb(235,235,245)")
+    body.append(" · ", style="dim")
+    body.append("Render Modes", style="bold rgb(245,95,220)")
+    body.append("\n\n")
 
-        for loop_index in range(1, 5):
-            if loop_index == 3:
-                glance_icon = glance_left
-            elif loop_index == 4:
-                glance_icon = glance_right
-            else:
-                glance_icon = None
+    body.append("Object name or ICRS coordinates", style="rgb(220,235,245)")
+    body.append("  →  ", style="dim rgb(120,150,170)")
+    body.append("Pan-STARRS FITS cutout", style="rgb(220,235,245)")
+    body.append("  →  ", style="dim rgb(120,150,170)")
+    body.append("ASCII skybox", style="rgb(220,235,245)")
+    body.append("\n\n")
 
-            for frame_index, icon in enumerate(normal_frames):
-                if glance_icon is not None and frame_index in {1, 2}:
-                    icon = glance_icon
+    body.append("Bands: ", style="dim rgb(150,165,185)")
+    body.append("short", style="bold rgb(60,190,255)")
+    body.append(" / ", style="dim")
+    body.append("mid", style="bold rgb(235,235,245)")
+    body.append(" / ", style="dim")
+    body.append("long", style="bold rgb(255,105,95)")
+    body.append(" / ", style="dim")
+    body.append("blend", style="bold rgb(245,95,220)")
 
-                console.clear()
-                console.print(build_panel(icon))
-                try:
-                    console.file.flush()
-                except Exception:
-                    pass
+    body.append("      ", style="dim")
 
-                # Wait in tiny slices so keypress reacts quickly.
-                wait_until = time.time() + 0.22
-                while time.time() < wait_until:
-                    if key_pressed():
-                        raise KeyboardInterrupt
-                    time.sleep(0.02)
+    body.append("Render: ", style="dim rgb(150,165,185)")
+    body.append("basic", style="rgb(220,235,245)")
+    body.append(" · ", style="dim")
+    body.append("rich", style="bold rgb(95,220,255)")
+    body.append(" · ", style="dim")
+    body.append("block", style="bold rgb(190,120,255)")
+    body.append("\n")
 
-    except KeyboardInterrupt:
-        pass
+    panel = Panel(
+        Align.center(body),
+        subtitle=Text("public sky-survey terminal viewer", style="dim rgb(150,165,185)"),
+        border_style="rgb(80,190,255)",
+        padding=(1, 4),
+        width=86,
+    )
 
-    finally:
-        if old_settings is not None:
-            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-
-    # Leave final normal frame on screen for the actual input prompt.
-    console.clear()
-    console.print(build_panel(normal_frames[0]))
-    try:
-        console.file.flush()
-    except Exception:
-        pass
-
+    console.print()
+    console.print(Align.center(panel))
+    console.print()
 
 def choose_survey():
     table = Table(
@@ -475,25 +409,24 @@ def metadata_overlay_lines(target, survey, fetch_result, metadata):
 
 
 def help_overlay_lines():
-    """
-    Compact help card for the image viewer.
-    """
-    return [
-        "┌──────────────────────────────────────────────┐",
-        "│ SKYBOX HELP                                  │",
-        "├──────────────────────────────────────────────┤",
-        "│ z  zoom: 1x → 2x → 3x                       │",
-        "│ b  brightness: low / med / bright           │",
-        "│ c  contrast: soft / med / hard              │",
-        "│ m  metadata overlay                         │",
-        "│ h  hide/show this help                      │",
-        "│ n  new target                               │",
-        "│ q  quit                                     │",
-        "├──────────────────────────────────────────────┤",
-        "│ Type one letter, then press Enter.           │",
-        "└──────────────────────────────────────────────┘",
+    width = 36
+
+    lines = [
+        "SKYBOX HELP",
+        "",
+        "z zoom     b brightness",
+        "c contrast r render mode",
+        "m metadata h help",
+        "k cache    n new target",
+        "q quit",
+        "",
+        "render:",
+        "basic  original ASCII",
+        "rich   dense texture",
+        "block  shaded mosaic",
     ]
 
+    return [line[:width].ljust(width) for line in lines]
 
 def cache_overlay_lines(cache_rows):
     """

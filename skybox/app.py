@@ -47,6 +47,7 @@ def render_view(
     zoom_level,
     brightness,
     contrast,
+    render_mode,
     show_meta,
     show_help,
     show_cache,
@@ -56,7 +57,7 @@ def render_view(
     except Exception:
         fits_size_mb = 0.0
 
-    with loading_task(f"Rendering image · {fits_size_mb:.1f} MB · zoom {zoom_level}x · {brightness} · {contrast}"):
+    with loading_task(f"Rendering image · {fits_size_mb:.1f} MB · zoom {zoom_level}x · {brightness} · {contrast} · {render_mode}"):
         ascii_lines = image_to_ascii(
             fits_path=fetch_result.path,
             width=ASCII_WIDTH,
@@ -66,6 +67,7 @@ def render_view(
             brightness=brightness,
             contrast=contrast,
             band_key=survey.key,
+            render_mode=render_mode,
         )
 
     console.clear()
@@ -87,6 +89,7 @@ def render_view(
         "[bold]z[/bold]=zoom  "
         "[bold]b[/bold]=brightness  "
         "[bold]c[/bold]=contrast  "
+        "[bold]r[/bold]=render  "
         "[bold]m[/bold]=metadata  "
         "[bold]h[/bold]=help  "
         "[bold]k[/bold]=cache  "
@@ -97,7 +100,7 @@ def render_view(
     source_state = getattr(fetch_result, "note", "") or "unknown source"
 
     console.print(
-        f"View state: zoom {zoom_level}x · brightness {brightness} · contrast {contrast} · metadata {'on' if show_meta else 'off'} · help {'on' if show_help else 'off'} · cache {'on' if show_cache else 'off'} · {source_state}",
+        f"View state: zoom {zoom_level}x · brightness {brightness} · contrast {contrast} · render {render_mode} · metadata {'on' if show_meta else 'off'} · help {'on' if show_help else 'off'} · cache {'on' if show_cache else 'off'} · {source_state}",
         style="dim",
     )
 
@@ -148,6 +151,7 @@ def viewer_loop(target, survey, field_preset, fetch_result, metadata):
     zoom_level = 1
     brightness = "med"
     contrast = "med"
+    render_mode = "basic"
     show_meta = False
     show_help = False
     show_cache = False
@@ -162,12 +166,13 @@ def viewer_loop(target, survey, field_preset, fetch_result, metadata):
             zoom_level=zoom_level,
             brightness=brightness,
             contrast=contrast,
+            render_mode=render_mode,
             show_meta=show_meta,
             show_help=show_help,
             show_cache=show_cache,
         )
 
-        command = console.input("\nPress key then Enter [z/b/c/m/h/k/n/q]: ").strip().lower()
+        command = console.input("\nPress key then Enter [z/b/c/r/m/h/k/n/q]: ").strip().lower()
 
         if command in {"z", "zoom"}:
             zoom_level += 1
@@ -179,6 +184,9 @@ def viewer_loop(target, survey, field_preset, fetch_result, metadata):
 
         elif command in {"c", "contrast"}:
             contrast = cycle_value(contrast, ["soft", "med", "hard"])
+
+        elif command in {"r", "render", "mode", "render mode"}:
+            render_mode = cycle_value(render_mode, ["basic", "rich", "block"])
 
         elif command in {"m", "meta", "metadata"}:
             show_meta = not show_meta
@@ -208,7 +216,7 @@ def viewer_loop(target, survey, field_preset, fetch_result, metadata):
             continue
 
         else:
-            console.print("Unknown command. Type z, b, c, m, h, k, n, or q, then press Enter.", style="red")
+            console.print("Unknown command. Type z, b, c, r, m, h, k, n, or q, then press Enter.", style="red")
 
 
 def run_app():
