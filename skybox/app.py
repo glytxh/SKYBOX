@@ -5,6 +5,8 @@ from skybox.fetcher import fetch_fits_cutout
 from skybox.loading import loading_task
 from skybox.metadata import get_basic_metadata
 from skybox.resolver import resolve_target
+from rich.text import Text
+
 from skybox.ui import (
     choose_field_preset,
     choose_survey,
@@ -38,6 +40,75 @@ def cycle_value(current, values):
     return values[index]
 
 
+VIEWPORT_PRESETS = {
+    "small": {
+        "label": "small",
+        "width": ASCII_WIDTH,
+        "height": ASCII_HEIGHT,
+    },
+    "wide": {
+        "label": "wide",
+        "width": 132,
+        "height": ASCII_HEIGHT,
+    },
+}
+
+
+def viewport_preset(viewport_mode):
+    return VIEWPORT_PRESETS.get(viewport_mode, VIEWPORT_PRESETS["small"])
+
+
+def safe_viewport(viewport_mode):
+    preset = dict(viewport_preset(viewport_mode))
+    terminal_width = max(80, console.size.width)
+
+    # The frame uses two border characters, so keep the image safely inside
+    # the current terminal width. This prevents wrapping in smaller windows.
+    preset["width"] = min(preset["width"], max(60, terminal_width - 4))
+
+    return preset
+
+
+WIDE_FIELD_MAP = {
+    "tight": "field",
+    "core": "field",
+    "normal": "wide",
+    "field": "wide",
+    "wide": "atlas",
+    "atlas": "atlas",
+    "grand": "survey",
+    "survey": "survey",
+}
+
+
+def field_for_viewport(base_field_preset, viewport_mode):
+    base = (base_field_preset or "field").strip().lower()
+
+    if viewport_mode == "wide":
+        return WIDE_FIELD_MAP.get(base, "survey")
+
+    return base
+
+
+def crop_line_center(line, width):
+    plain = line.plain if isinstance(line, Text) else str(line)
+
+    if len(plain) <= width:
+        return line
+
+    start = max(0, (len(plain) - width) // 2)
+    end = start + width
+
+    if isinstance(line, Text):
+        return line[start:end]
+
+    return plain[start:end]
+
+
+def crop_lines_center(lines, width):
+    return [crop_line_center(line, width) for line in lines]
+
+
 def render_view(
     fetch_result,
     target,
@@ -48,20 +119,31 @@ def render_view(
     brightness,
     contrast,
     render_mode,
+    viewport_mode,
     show_meta,
     show_help,
     show_cache,
 ):
+    viewport = safe_viewport(viewport_mode)
+    wide_viewport = safe_viewport("wide")
+    viewport_label = viewport["label"]
+
+    # Render once using the wide canvas. Small view is a centre crop of
+    # the same rendered sky field, not a separately squashed resample.
+    render_width = wide_viewport["width"]
+    render_height = viewport["height"]
+    frame_width = viewport["width"]
+
     try:
         fits_size_mb = fetch_result.path.stat().st_size / (1024 * 1024)
     except Exception:
         fits_size_mb = 0.0
 
-    with loading_task(f"Rendering image · {fits_size_mb:.1f} MB · zoom {zoom_level}x · {brightness} · {contrast} · {render_mode}"):
+    with loading_task(f"Rendering image · {fits_size_mb:.1f} MB · view {viewport_label} · zoom {zoom_level}x · {brightness} · {contrast} · {render_mode}"):
         ascii_lines = image_to_ascii(
             fits_path=fetch_result.path,
-            width=ASCII_WIDTH,
-            height=ASCII_HEIGHT,
+            width=render_width,
+            height=render_height,
             render_profile=render_profile_for_target(target.name, field_preset),
             zoom_level=zoom_level,
             brightness=brightness,
@@ -70,19 +152,22 @@ def render_view(
             render_mode=render_mode,
         )
 
+    if frame_width < render_width:
+        ascii_lines = crop_lines_center(ascii_lines, frame_width)
+
     console.clear()
 
     if show_cache:
         overlay = cache_overlay_lines(list_fits_cache(CACHE_FITS_DIR, limit=5))
-        show_ascii_frame_with_overlay(ascii_lines, overlay_lines=overlay, overlay_x=3, overlay_y=3)
+        show_ascii_frame_with_overlay(ascii_lines, overlay_lines=overlay, overlay_x=3, overlay_y=3, frame_width=frame_width)
     elif show_help:
         overlay = help_overlay_lines()
-        show_ascii_frame_with_overlay(ascii_lines, overlay_lines=overlay, overlay_x=3, overlay_y=3)
+        show_ascii_frame_with_overlay(ascii_lines, overlay_lines=overlay, overlay_x=3, overlay_y=3, frame_width=frame_width)
     elif show_meta:
         overlay = metadata_overlay_lines(target, survey, fetch_result, metadata)
-        show_ascii_frame_with_overlay(ascii_lines, overlay_lines=overlay, overlay_x=3, overlay_y=3)
+        show_ascii_frame_with_overlay(ascii_lines, overlay_lines=overlay, overlay_x=3, overlay_y=3, frame_width=frame_width)
     else:
-        show_ascii_frame(ascii_lines)
+        show_ascii_frame(ascii_lines, frame_width=frame_width)
 
     console.print(
         "\n[bold]Controls[/bold]  "
@@ -90,6 +175,7 @@ def render_view(
         "[bold]b[/bold]=brightness  "
         "[bold]c[/bold]=contrast  "
         "[bold]r[/bold]=render  "
+        "[bold]w[/bold]=view  "
         "[bold]m[/bold]=metadata  "
         "[bold]h[/bold]=help  "
         "[bold]k[/bold]=cache  "
@@ -100,7 +186,7 @@ def render_view(
     source_state = getattr(fetch_result, "note", "") or "unknown source"
 
     console.print(
-        f"View state: zoom {zoom_level}x · brightness {brightness} · contrast {contrast} · render {render_mode} · metadata {'on' if show_meta else 'off'} · help {'on' if show_help else 'off'} · cache {'on' if show_cache else 'off'} · {source_state}",
+        f"View state: view {viewport_label} · zoom {zoom_level}x · brightness {brightness} · contrast {contrast} · render {render_mode} · metadata {'on' if show_meta else 'off'} · help {'on' if show_help else 'off'} · cache {'on' if show_cache else 'off'} · {source_state}",
         style="dim",
     )
 
@@ -152,27 +238,45 @@ def viewer_loop(target, survey, field_preset, fetch_result, metadata):
     brightness = "med"
     contrast = "med"
     render_mode = "basic"
+    viewport_mode = "small"
     show_meta = False
     show_help = False
     show_cache = False
 
+    source_field_preset = field_for_viewport(field_preset, "wide")
+
+    if source_field_preset == field_preset:
+        source_fetch_result = fetch_result
+    else:
+        with loading_task(f"Fetching shared view source · field {source_field_preset}"):
+            source_fetch_result = fetch_fits_cutout(
+                target=target,
+                survey=survey,
+                field_preset=source_field_preset,
+                cache_dir=CACHE_FITS_DIR,
+            )
+
     while True:
+        active_fetch_result = source_fetch_result
+        active_field_preset = source_field_preset
+
         render_view(
-            fetch_result=fetch_result,
+            fetch_result=active_fetch_result,
             target=target,
             survey=survey,
             metadata=metadata,
-            field_preset=field_preset,
+            field_preset=active_field_preset,
             zoom_level=zoom_level,
             brightness=brightness,
             contrast=contrast,
             render_mode=render_mode,
+            viewport_mode=viewport_mode,
             show_meta=show_meta,
             show_help=show_help,
             show_cache=show_cache,
         )
 
-        command = console.input("\nPress key then Enter [z/b/c/r/m/h/k/n/q]: ").strip().lower()
+        command = console.input("\nPress key then Enter [z/b/c/r/w/m/h/k/n/q]: ").strip().lower()
 
         if command in {"z", "zoom"}:
             zoom_level += 1
@@ -187,6 +291,9 @@ def viewer_loop(target, survey, field_preset, fetch_result, metadata):
 
         elif command in {"r", "render", "mode", "render mode"}:
             render_mode = cycle_value(render_mode, ["basic", "rich", "block"])
+
+        elif command in {"w", "wide", "view", "view size", "viewport"}:
+            viewport_mode = cycle_value(viewport_mode, ["small", "wide"])
 
         elif command in {"m", "meta", "metadata"}:
             show_meta = not show_meta

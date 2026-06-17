@@ -13,7 +13,7 @@ from skybox.config import SURVEYS
 FRAME_WIDTH = 100
 PANEL_WIDTH = 104
 
-console = Console(width=PANEL_WIDTH, soft_wrap=False)
+console = Console(soft_wrap=False)
 
 
 def heavy_box_line(left, fill, right, width=FRAME_WIDTH):
@@ -212,27 +212,17 @@ def crop_or_pad_text_line(line, width):
     return Text(text)
 
 
-def show_ascii_frame(lines):
-    border_top = heavy_box_line("╔", "═", "╗")
-    border_bottom = heavy_box_line("╚", "═", "╝")
 
-    console.print(Text(border_top))
+def show_ascii_frame(lines, frame_width=None):
+    frame_width = frame_width or FRAME_WIDTH
 
-    for line in lines[:50]:
-        safe_line = crop_or_pad_text_line(line, FRAME_WIDTH)
+    console.print(Text("╔" + ("═" * frame_width) + "╗", style="bold cyan"))
 
-        framed = Text("║")
-        framed.append(safe_line)
-        framed.append("║")
+    for line in lines:
+        safe_line = crop_or_pad_text_line(line, frame_width)
+        console.print(Text("║", style="bold cyan") + safe_line + Text("║", style="bold cyan"))
 
-        console.print(framed, overflow="crop", crop=True, soft_wrap=False)
-
-    if len(lines) < 50:
-        for _ in range(50 - len(lines)):
-            console.print(Text("║" + (" " * FRAME_WIDTH) + "║"))
-
-    console.print(Text(border_bottom))
-
+    console.print(Text("╚" + ("═" * frame_width) + "╝", style="bold cyan"))
 
 def compact_path(path):
     text = str(path)
@@ -291,29 +281,19 @@ def show_error(error):
     console.print(Panel(Text(str(error)), title="ERROR", border_style="red", width=PANEL_WIDTH))
 
 
-def show_ascii_frame_with_overlay(lines, overlay_lines=None, overlay_x=3, overlay_y=3):
-    """
-    Draw ASCII image frame with an optional metadata card stamped
-    into the image area.
 
-    This version preserves original Rich colour styling outside:
-    - the metadata card
-    - the small one-cell drop shadow
-    """
-    working = [crop_or_pad_text_line(line, FRAME_WIDTH) for line in lines]
+def show_ascii_frame_with_overlay(lines, overlay_lines=None, overlay_x=3, overlay_y=3, frame_width=None):
+    frame_width = frame_width or FRAME_WIDTH
+    working = [crop_or_pad_text_line(line, frame_width) for line in lines]
 
     def stamp_segment(row_index, x_start, segment_text, style):
-        """
-        Replace a short segment in one Rich Text row while preserving
-        all styling before and after the segment.
-        """
         if not (0 <= row_index < len(working)):
             return
 
-        if x_start >= FRAME_WIDTH:
+        if x_start >= frame_width:
             return
 
-        segment_text = segment_text[: max(0, FRAME_WIDTH - x_start)]
+        segment_text = segment_text[: max(0, frame_width - x_start)]
         if not segment_text:
             return
 
@@ -328,7 +308,7 @@ def show_ascii_frame_with_overlay(lines, overlay_lines=None, overlay_x=3, overla
         new_line.append(segment_text, style=style)
         new_line.append_text(after)
 
-        working[row_index] = crop_or_pad_text_line(new_line, FRAME_WIDTH)
+        working[row_index] = crop_or_pad_text_line(new_line, frame_width)
 
     if overlay_lines:
         card_h = len(overlay_lines)
@@ -336,28 +316,26 @@ def show_ascii_frame_with_overlay(lines, overlay_lines=None, overlay_x=3, overla
 
         shadow_style = "white on grey7"
 
-        # Right-hand shadow: a thin vertical offset edge.
         for i in range(card_h):
             y = overlay_y + i + 1
             x = overlay_x + card_w
             stamp_segment(y, x, "  ", shadow_style)
 
-        # Lower shadow: a thin horizontal offset edge.
         y = overlay_y + card_h
         x = overlay_x + 2
         stamp_segment(y, x, " " * max(0, card_w - 1), shadow_style)
 
-        # Main metadata card.
         for i, overlay_line in enumerate(overlay_lines):
             y = overlay_y + i
-            fragment = overlay_line[: max(0, FRAME_WIDTH - overlay_x)]
+            fragment = overlay_line[: max(0, frame_width - overlay_x)]
             stamp_segment(y, overlay_x, fragment, "bold white on grey11")
 
-    console.print(Text("╔" + ("═" * FRAME_WIDTH) + "╗", style="bold cyan"))
+    console.print(Text("╔" + ("═" * frame_width) + "╗", style="bold cyan"))
+
     for line in working:
         console.print(Text("║", style="bold cyan") + line + Text("║", style="bold cyan"))
-    console.print(Text("╚" + ("═" * FRAME_WIDTH) + "╝", style="bold cyan"))
 
+    console.print(Text("╚" + ("═" * frame_width) + "╝", style="bold cyan"))
 
 def metadata_overlay_lines(target, survey, fetch_result, metadata):
     """
@@ -408,22 +386,21 @@ def metadata_overlay_lines(target, survey, fetch_result, metadata):
     return rows
 
 
+
 def help_overlay_lines():
-    width = 36
+    width = 38
 
     lines = [
         "SKYBOX HELP",
         "",
-        "z zoom     b brightness",
-        "c contrast r render mode",
-        "m metadata h help",
-        "k cache    n new target",
-        "q quit",
+        "z zoom      b brightness",
+        "c contrast  r render mode",
+        "w view size m metadata",
+        "k cache     n new target",
+        "h help      q quit",
         "",
-        "render:",
-        "basic  original ASCII",
-        "rich   dense texture",
-        "block  shaded mosaic",
+        "render: basic / rich / block",
+        "view:   small / wide",
     ]
 
     return [line[:width].ljust(width) for line in lines]
