@@ -30,3 +30,5 @@ cache/metadata/*
 
 # macOS icon build folder
 SKYBOX.iconset/
+cache/theme_cycle.txt
+exports/

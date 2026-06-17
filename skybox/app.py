@@ -22,6 +22,7 @@ from skybox.ui import (
     metadata_overlay_lines,
     help_overlay_lines,
     cache_overlay_lines,
+    theme_style,
 )
 
 
@@ -119,11 +120,11 @@ def choose_catalog_target():
         title="SKYBOX object catalog",
         width=104,
         show_lines=False,
-        border_style="white",
+        border_style=theme_style("table_border"),
     )
 
     table.add_column("#", justify="right", no_wrap=True, style="bold")
-    table.add_column("Object", no_wrap=True, style="bold cyan")
+    table.add_column("Object", no_wrap=True, style=theme_style("soft"))
     table.add_column("Name", no_wrap=True)
     table.add_column("Group", no_wrap=True)
     table.add_column("Field note")
@@ -142,7 +143,7 @@ def choose_catalog_target():
     console.print("[dim]Pick a number, type an object name, or q to cancel.[/dim]")
 
     while True:
-        choice = console.input("\n[bold cyan]Catalog target[/bold cyan] › ").strip()
+        choice = console.input("\n[bold rgb(255,198,112)]Catalog target[/bold rgb(255,198,112)] › ").strip()
 
         if choice.lower() in {"q", "quit", "exit"}:
             return None
@@ -171,7 +172,7 @@ def ask_export_metadata():
     console.print("[bold]1[/bold] yes   [bold]2[/bold] no   [bold]q[/bold] cancel", style="dim")
 
     while True:
-        choice = console.input("[bold cyan]Metadata overlay[/bold cyan] › ").strip().lower()
+        choice = console.input("[bold rgb(255,198,112)]Metadata overlay[/bold rgb(255,198,112)] › ").strip().lower()
 
         if choice in {"q", "quit", "exit"}:
             return None
@@ -268,11 +269,11 @@ def choose_cached_fits():
         title="SKYBOX cache manager",
         width=104,
         show_lines=False,
-        border_style="white",
+        border_style=theme_style("table_border"),
     )
 
     table.add_column("#", justify="right", no_wrap=True, style="bold")
-    table.add_column("Cached FITS", no_wrap=True, style="bold cyan")
+    table.add_column("Cached FITS", no_wrap=True, style=theme_style("soft"))
     table.add_column("Size", justify="right", no_wrap=True)
     table.add_column("Field", no_wrap=True)
     table.add_column("Band", no_wrap=True)
@@ -292,7 +293,7 @@ def choose_cached_fits():
     console.print("[dim]Pick a number, or q to cancel.[/dim]")
 
     while True:
-        choice = console.input("\n[bold cyan]Cached FITS[/bold cyan] › ").strip().lower()
+        choice = console.input("\n[bold rgb(255,198,112)]Cached FITS[/bold rgb(255,198,112)] › ").strip().lower()
 
         if choice in {"q", "quit", "exit"}:
             return None
@@ -399,7 +400,7 @@ def render_view(
 def run_query_once():
     show_title()
 
-    target_query = console.input("[bold cyan]Target[/bold cyan] name, ICRS coordinates, or [bold]c[/bold] catalog › ").strip()
+    target_query = console.input("[bold rgb(255,198,112)]Target[/bold rgb(255,198,112)] name, ICRS coordinates, or [bold]c[/bold] catalog › ").strip()
 
     if target_query.lower() in {"q", "quit", "exit"}:
         return None

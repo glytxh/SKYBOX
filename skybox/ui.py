@@ -1,3 +1,5 @@
+from pathlib import Path
+from rich import box
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 from rich.console import Console
@@ -15,12 +17,218 @@ PANEL_WIDTH = 104
 
 console = Console(soft_wrap=False)
 
+def make_theme(name, primary, soft, accent, white, dim, logo):
+    return {
+        "name": name,
+        "primary": primary,
+        "primary_bold": f"bold {primary}",
+        "soft": soft,
+        "accent": accent,
+        "white": white,
+        "dim": f"dim {dim}",
+        "border": f"bold {primary}",
+        "table_border": primary,
+        "logo": logo,
+    }
+
+
+BOOT_THEMES = [
+    make_theme(
+        "amber",
+        "rgb(255,176,72)",
+        "rgb(255,198,112)",
+        "rgb(255,112,48)",
+        "rgb(255,232,196)",
+        "rgb(190,145,95)",
+        [
+            "rgb(255,220,150)",
+            "rgb(255,198,112)",
+            "rgb(255,176,72)",
+            "rgb(255,146,54)",
+            "rgb(255,112,48)",
+            "rgb(210,74,32)",
+        ],
+    ),
+    make_theme(
+        "ember",
+        "rgb(255,132,64)",
+        "rgb(255,174,102)",
+        "rgb(218,74,42)",
+        "rgb(255,226,196)",
+        "rgb(185,116,82)",
+        [
+            "rgb(255,214,166)",
+            "rgb(255,174,102)",
+            "rgb(255,132,64)",
+            "rgb(238,96,50)",
+            "rgb(200,62,38)",
+            "rgb(135,42,32)",
+        ],
+    ),
+    make_theme(
+        "brass",
+        "rgb(225,184,92)",
+        "rgb(246,210,126)",
+        "rgb(188,126,52)",
+        "rgb(246,232,190)",
+        "rgb(166,139,88)",
+        [
+            "rgb(250,232,172)",
+            "rgb(246,210,126)",
+            "rgb(225,184,92)",
+            "rgb(196,146,66)",
+            "rgb(154,104,45)",
+            "rgb(112,76,36)",
+        ],
+    ),
+    make_theme(
+        "rose-gold",
+        "rgb(255,168,132)",
+        "rgb(255,202,178)",
+        "rgb(226,104,92)",
+        "rgb(255,232,218)",
+        "rgb(190,128,116)",
+        [
+            "rgb(255,226,206)",
+            "rgb(255,202,178)",
+            "rgb(255,168,132)",
+            "rgb(236,126,104)",
+            "rgb(196,82,78)",
+            "rgb(128,56,68)",
+        ],
+    ),
+    make_theme(
+        "dusk",
+        "rgb(238,150,92)",
+        "rgb(255,186,122)",
+        "rgb(176,96,118)",
+        "rgb(244,222,202)",
+        "rgb(166,122,116)",
+        [
+            "rgb(255,214,162)",
+            "rgb(255,186,122)",
+            "rgb(238,150,92)",
+            "rgb(206,112,94)",
+            "rgb(176,96,118)",
+            "rgb(112,72,112)",
+        ],
+    ),
+    make_theme(
+        "green",
+        "rgb(126,220,128)",
+        "rgb(172,246,168)",
+        "rgb(78,176,116)",
+        "rgb(220,255,218)",
+        "rgb(118,168,126)",
+        [
+            "rgb(226,255,214)",
+            "rgb(172,246,168)",
+            "rgb(126,220,128)",
+            "rgb(78,176,116)",
+            "rgb(48,132,96)",
+            "rgb(34,86,72)",
+        ],
+    ),
+    make_theme(
+        "blue",
+        "rgb(100,178,255)",
+        "rgb(156,214,255)",
+        "rgb(92,118,230)",
+        "rgb(220,238,255)",
+        "rgb(112,142,184)",
+        [
+            "rgb(220,244,255)",
+            "rgb(156,214,255)",
+            "rgb(100,178,255)",
+            "rgb(78,138,236)",
+            "rgb(92,118,230)",
+            "rgb(52,72,150)",
+        ],
+    ),
+    make_theme(
+        "purple",
+        "rgb(186,136,255)",
+        "rgb(218,188,255)",
+        "rgb(226,104,220)",
+        "rgb(240,224,255)",
+        "rgb(156,126,184)",
+        [
+            "rgb(244,226,255)",
+            "rgb(218,188,255)",
+            "rgb(186,136,255)",
+            "rgb(150,104,232)",
+            "rgb(226,104,220)",
+            "rgb(104,70,160)",
+        ],
+    ),
+]
+
+
+_BOOT_THEME = None
+
+SKY_CYAN = BOOT_THEMES[0]["primary"]
+SKY_CYAN_BOLD = BOOT_THEMES[0]["primary_bold"]
+SKY_CYAN_SOFT = BOOT_THEMES[0]["soft"]
+SKY_MAGENTA = BOOT_THEMES[0]["accent"]
+SKY_WHITE = BOOT_THEMES[0]["white"]
+SKY_DIM = BOOT_THEMES[0]["dim"]
+SKY_BORDER = BOOT_THEMES[0]["border"]
+SKY_TABLE_BORDER = BOOT_THEMES[0]["table_border"]
+SKY_LOGO_GRADIENT = BOOT_THEMES[0]["logo"]
+
+
+def activate_boot_theme():
+    """
+    Select one UI colour theme per app launch.
+
+    The theme advances once when the title screen first opens, then stays
+    fixed until SKYBOX quits. Viewer image rendering is not affected.
+    """
+    global _BOOT_THEME
+    global SKY_CYAN, SKY_CYAN_BOLD, SKY_CYAN_SOFT, SKY_MAGENTA
+    global SKY_WHITE, SKY_DIM, SKY_BORDER, SKY_TABLE_BORDER, SKY_LOGO_GRADIENT
+
+    if _BOOT_THEME is not None:
+        return _BOOT_THEME
+
+    state_path = Path("cache/theme_cycle.txt")
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        previous_index = int(state_path.read_text().strip())
+    except Exception:
+        previous_index = -1
+
+    index = (previous_index + 1) % len(BOOT_THEMES)
+    state_path.write_text(str(index))
+
+    theme = BOOT_THEMES[index]
+    _BOOT_THEME = theme
+
+    SKY_CYAN = theme["primary"]
+    SKY_CYAN_BOLD = theme["primary_bold"]
+    SKY_CYAN_SOFT = theme["soft"]
+    SKY_MAGENTA = theme["accent"]
+    SKY_WHITE = theme["white"]
+    SKY_DIM = theme["dim"]
+    SKY_BORDER = theme["border"]
+    SKY_TABLE_BORDER = theme["table_border"]
+    SKY_LOGO_GRADIENT = theme["logo"]
+
+    return theme
+
+
+def theme_style(name):
+    activate_boot_theme()
+    return _BOOT_THEME.get(name, "")
+
 
 def heavy_box_line(left, fill, right, width=FRAME_WIDTH):
     return left + (fill * width) + right
 
 
 def show_title():
+    theme = activate_boot_theme()
     console.clear()
 
     logo = [
@@ -32,14 +240,7 @@ def show_title():
         "╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═════╝  ╚═════╝ ╚═╝  ╚═╝",
     ]
 
-    gradient = [
-        "rgb(60,220,255)",
-        "rgb(80,190,255)",
-        "rgb(110,155,255)",
-        "rgb(150,120,255)",
-        "rgb(200,95,255)",
-        "rgb(245,95,220)",
-    ]
+    gradient = SKY_LOGO_GRADIENT
 
     body = Text()
     body.append("\n")
@@ -49,58 +250,60 @@ def show_title():
         body.append("\n")
 
     body.append("\n")
-    body.append(f"v{APP_VERSION}", style="bold rgb(235,235,245)")
+    body.append(f"v{APP_VERSION}", style=SKY_WHITE)
     body.append(" · ", style="dim")
-    body.append(APP_CODENAME, style="bold rgb(245,95,220)")
+    body.append(APP_CODENAME, style=SKY_MAGENTA)
     body.append("\n\n")
 
-    body.append("Object name", style="rgb(220,235,245)")
-    body.append("  /  ", style="dim rgb(120,150,170)")
-    body.append("ICRS coordinates", style="rgb(220,235,245)")
-    body.append("  /  ", style="dim rgb(120,150,170)")
-    body.append("catalog", style="bold rgb(95,220,255)")
-    body.append("  →  ", style="dim rgb(120,150,170)")
-    body.append("ASCII skybox", style="rgb(220,235,245)")
+    body.append("Object name", style=SKY_WHITE)
+    body.append("  /  ", style=SKY_DIM)
+    body.append("ICRS coordinates", style=SKY_WHITE)
+    body.append("  /  ", style=SKY_DIM)
+    body.append("catalog", style=SKY_CYAN_SOFT)
+    body.append("  →  ", style=SKY_DIM)
+    body.append("ASCII skybox", style=SKY_WHITE)
     body.append("\n")
-    body.append("Type ", style="dim rgb(150,165,185)")
-    body.append("c", style="bold rgb(95,220,255)")
-    body.append(" or ", style="dim rgb(150,165,185)")
-    body.append("catalog", style="bold rgb(95,220,255)")
-    body.append(" to browse built-in targets", style="dim rgb(150,165,185)")
+    body.append("Type ", style=SKY_DIM)
+    body.append("c", style=SKY_CYAN_SOFT)
+    body.append(" or ", style=SKY_DIM)
+    body.append("catalog", style=SKY_CYAN_SOFT)
+    body.append(" to browse built-in targets", style=SKY_DIM)
     body.append("\n\n")
 
-    body.append("Bands: ", style="dim rgb(150,165,185)")
-    body.append("short", style="bold rgb(60,190,255)")
+    body.append("Bands: ", style=SKY_DIM)
+    body.append("short", style=SKY_CYAN_BOLD)
     body.append(" / ", style="dim")
-    body.append("mid", style="bold rgb(235,235,245)")
+    body.append("mid", style=SKY_WHITE)
     body.append(" / ", style="dim")
-    body.append("long", style="bold rgb(255,105,95)")
+    body.append("long", style=SKY_MAGENTA)
     body.append(" / ", style="dim")
-    body.append("blend", style="bold rgb(245,95,220)")
+    body.append("blend", style=SKY_MAGENTA)
 
     body.append("\n")
 
-    body.append("Render: ", style="dim rgb(150,165,185)")
-    body.append("basic", style="rgb(220,235,245)")
+    body.append("Render: ", style=SKY_DIM)
+    body.append("basic", style=SKY_WHITE)
     body.append(" · ", style="dim")
-    body.append("rich", style="bold rgb(95,220,255)")
+    body.append("rich", style=SKY_CYAN_SOFT)
     body.append(" · ", style="dim")
-    body.append("block", style="bold rgb(190,120,255)")
+    body.append("block", style=SKY_MAGENTA)
 
     body.append("      ", style="dim")
 
-    body.append("View: ", style="dim rgb(150,165,185)")
-    body.append("small", style="rgb(220,235,245)")
+    body.append("View: ", style=SKY_DIM)
+    body.append("small", style=SKY_WHITE)
     body.append(" · ", style="dim")
-    body.append("wide", style="bold rgb(95,220,255)")
+    body.append("wide", style=SKY_CYAN_SOFT)
     body.append("\n")
 
     panel = Panel(
         Align.center(body),
-        subtitle=Text("public sky-survey terminal viewer", style="dim rgb(150,165,185)"),
-        border_style="rgb(80,190,255)",
+        title=Text("  SKYBOX  ", style=SKY_BORDER),
+        subtitle=Text(f" public sky-survey terminal viewer · {theme['name']} ", style=SKY_DIM),
+        border_style=SKY_BORDER,
+        box=box.DOUBLE,
         padding=(1, 4),
-        width=86,
+        width=88,
     )
 
     console.print()
@@ -114,7 +317,7 @@ def choose_survey():
         title="Band mode",
         width=PANEL_WIDTH,
         show_lines=False,
-        border_style="white",
+        border_style=SKY_TABLE_BORDER,
     )
 
     table.add_column("#", justify="right", no_wrap=True, style="bold")
@@ -172,7 +375,7 @@ def choose_field_preset():
         title="Field size",
         width=PANEL_WIDTH,
         show_lines=False,
-        border_style="white",
+        border_style=SKY_TABLE_BORDER,
     )
 
     table.add_column("#", justify="right", no_wrap=True, style="bold")
@@ -248,13 +451,13 @@ def crop_or_pad_text_line(line, width):
 def show_ascii_frame(lines, frame_width=None):
     frame_width = frame_width or FRAME_WIDTH
 
-    console.print(Text("╔" + ("═" * frame_width) + "╗", style="bold cyan"))
+    console.print("╔" + ("═" * frame_width) + "╗")
 
     for line in lines:
         safe_line = crop_or_pad_text_line(line, frame_width)
-        console.print(Text("║", style="bold cyan") + safe_line + Text("║", style="bold cyan"))
+        console.print(Text("║") + safe_line + Text("║"))
 
-    console.print(Text("╚" + ("═" * frame_width) + "╝", style="bold cyan"))
+    console.print("╚" + ("═" * frame_width) + "╝")
 
 def compact_path(path):
     text = str(path)
@@ -302,8 +505,8 @@ def show_metadata(target, survey, fetch_result, metadata):
     outer.add_column(width=51)
 
     outer.add_row(
-        Panel(target_table, title="Target", border_style="white", width=51),
-        Panel(survey_table, title="Image", border_style="white", width=51),
+        Panel(target_table, title="Target", border_style=SKY_TABLE_BORDER, width=51),
+        Panel(survey_table, title="Image", border_style=SKY_TABLE_BORDER, width=51),
     )
 
     console.print(outer)
@@ -402,9 +605,9 @@ def metadata_overlay_lines(target, survey, fetch_result, metadata):
         fov_text = fetch_result.requested_field
 
     rows = [
-        "┌──────────────────────────────────────────────┐",
+        "╔══════════════════════════════════════════════╗",
         "│ SKYBOX METADATA                              │",
-        "├──────────────────────────────────────────────┤",
+        "╠══════════════════════════════════════════════╣",
         f"│ Object : {target.name[:35]:<35} │",
         f"│ Type   : {object_type[:35]:<35} │",
         f"│ ICRS   : {coord_text[:35]:<35} │",
@@ -412,7 +615,7 @@ def metadata_overlay_lines(target, survey, fetch_result, metadata):
         f"│ Field  : {fetch_result.requested_field[:35]:<35} │",
         f"│ FOV    : {fov_text[:35]:<35} │",
         f"│ File   : {file_name[:35]:<35} │",
-        "└──────────────────────────────────────────────┘",
+        "╚══════════════════════════════════════════════╝",
     ]
 
     return rows
@@ -424,19 +627,19 @@ def help_overlay_lines():
     Compact framed help card for the image viewer.
     """
     rows = [
-        "┌──────────────────────────────────────────────┐",
+        "╔══════════════════════════════════════════════╗",
         "│ SKYBOX HELP                                  │",
-        "├──────────────────────────────────────────────┤",
+        "╠══════════════════════════════════════════════╣",
         "│ z  zoom              b  brightness           │",
         "│ c  contrast          r  render mode          │",
         "│ w  view size         e  export PNG           │",
         "│ m  metadata          k  cache overlay        │",
         "│ o  open cache        n  new target           │",
         "│ h  help              q  quit                 │",
-        "├──────────────────────────────────────────────┤",
+        "╠══════════════════════════════════════════════╣",
         "│ render: basic / rich / block                 │",
         "│ view:   small / wide                         │",
-        "└──────────────────────────────────────────────┘",
+        "╚══════════════════════════════════════════════╝",
     ]
 
     return rows
@@ -446,9 +649,9 @@ def cache_overlay_lines(cache_rows):
     Compact cache card for the image viewer.
     """
     rows = [
-        "┌──────────────────────────────────────────────┐",
+        "╔══════════════════════════════════════════════╗",
         "│ SKYBOX FITS CACHE  newest 15                 │",
-        "├──────────────────────────────────────────────┤",
+        "╠══════════════════════════════════════════════╣",
     ]
 
     if not cache_rows:
@@ -462,9 +665,9 @@ def cache_overlay_lines(cache_rows):
 
     rows.extend(
         [
-            "├──────────────────────────────────────────────┤",
+            "╠══════════════════════════════════════════════╣",
             "│ Type number to open · k hides cache.         │",
-            "└──────────────────────────────────────────────┘",
+            "╚══════════════════════════════════════════════╝",
         ]
     )
 

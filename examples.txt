@@ -1,39 +1,55 @@
-SKYBOX quick test examples
+SKYBOX quick examples
 
-Use these from the main menu.
+Run:
+python3 run.py
 
-1. Spiral galaxy, colour overview
-   Target: M101
-   Band:   blend
-   Field:  atlas
+Simple named target:
+M101
+4
+4
 
-2. Big galaxy context field
-   Target: M31
-   Band:   blend
-   Field:  survey
+Catalog path:
+c
+7
+4
+4
 
-3. Compact star cluster
-   Target: M13
-   Band:   mid
-   Field:  wide
+Typed legacy path:
+m101
+blend
+atlas
 
-4. Nearby high-proper-motion star
-   Target: Wolf 395
-   Band:   long
-   Field:  core
+Viewer controls:
+z  zoom
+b  brightness
+c  contrast
+r  render mode
+w  view size
+e  export PNG
+m  metadata overlay
+h  help overlay
+k  cache overlay
+o  open cached FITS
+n  new target
+q  quit
 
-5. Blue/short-band galaxy field
-   Target: M101
-   Band:   short
-   Field:  atlas
+Cache overlay:
+k
+1
 
-Viewer controls
+PNG export:
+e
+1   with metadata
+e
+2   clean image
 
-z = zoom
-b = brightness
-c = contrast
-m = metadata overlay
-h = help overlay
-k = cache overlay
-n = new target
-q = quit
+Good broad visual targets:
+M101
+M31
+M51
+M81
+M82
+M42
+M45
+NGC 253
+3C 273

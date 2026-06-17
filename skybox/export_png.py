@@ -9,8 +9,8 @@ from rich.text import Text
 
 
 EXPORT_DIR = Path("exports/png")
-BORDER_STYLE = "bold cyan"
-OVERLAY_STYLE = "bold white on grey11"
+BORDER_STYLE = "bold rgb(255,176,72)"
+OVERLAY_STYLE = "bold rgb(255,232,196) on grey11"
 SHADOW_STYLE = "white on grey7"
 
 CELL_W = 9
@@ -174,7 +174,7 @@ def draw_text_rows(rows, output_path):
     image = Image.new("RGB", (image_w, image_h), (0, 0, 0))
     draw = ImageDraw.Draw(image)
 
-    default_fg = (220, 235, 245)
+    default_fg = (255, 232, 196)
     default_bg = (0, 0, 0)
 
     for y, row in enumerate(rows):
