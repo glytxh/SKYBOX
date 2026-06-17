@@ -409,22 +409,26 @@ def metadata_overlay_lines(target, survey, fetch_result, metadata):
 
 
 def help_overlay_lines():
-    width = 38
-
-    lines = [
-        "SKYBOX HELP",
-        "",
-        "z zoom      b brightness",
-        "c contrast  r render mode",
-        "w view size m metadata",
-        "k cache     n new target",
-        "h help      q quit",
-        "",
-        "render: basic / rich / block",
-        "view:   small / wide",
+    """
+    Compact framed help card for the image viewer.
+    """
+    rows = [
+        "┌──────────────────────────────────────────────┐",
+        "│ SKYBOX HELP                                  │",
+        "├──────────────────────────────────────────────┤",
+        "│ z  zoom              b  brightness           │",
+        "│ c  contrast          r  render mode          │",
+        "│ w  view size         e  export PNG           │",
+        "│ m  metadata          k  cache                │",
+        "│ n  new target        h  help                 │",
+        "│ q  quit                                      │",
+        "├──────────────────────────────────────────────┤",
+        "│ render: basic / rich / block                 │",
+        "│ view:   small / wide                         │",
+        "└──────────────────────────────────────────────┘",
     ]
 
-    return [line[:width].ljust(width) for line in lines]
+    return rows
 
 def cache_overlay_lines(cache_rows):
     """

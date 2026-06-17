@@ -3,6 +3,7 @@ from skybox.cache import prune_fits_cache, list_fits_cache, fits_cache_size_mb, 
 from skybox.config import ASCII_HEIGHT, ASCII_WIDTH, CACHE_FITS_DIR
 from skybox.fetcher import fetch_fits_cutout
 from skybox.loading import loading_task
+from skybox.export_png import export_view_png
 from skybox.catalog import catalog_entries
 from skybox.metadata import get_basic_metadata
 from skybox.resolver import resolve_target
@@ -164,6 +165,26 @@ def choose_catalog_target():
         console.print("[red]Unknown catalog choice. Enter a listed number, object name, or q.[/red]")
 
 
+def ask_export_metadata():
+    console.print()
+    console.print("[bold]Export PNG[/bold]  Include metadata overlay?")
+    console.print("[bold]1[/bold] yes   [bold]2[/bold] no   [bold]q[/bold] cancel", style="dim")
+
+    while True:
+        choice = console.input("[bold cyan]Metadata overlay[/bold cyan] › ").strip().lower()
+
+        if choice in {"q", "quit", "exit"}:
+            return None
+
+        if choice in {"1", "y", "yes", "metadata", "with metadata"}:
+            return True
+
+        if choice in {"2", "n", "no", "clean", "without metadata"}:
+            return False
+
+        console.print("[red]Choose 1, 2, or q.[/red]")
+
+
 def render_view(
     fetch_result,
     target,
@@ -231,6 +252,7 @@ def render_view(
         "[bold]c[/bold]=contrast  "
         "[bold]r[/bold]=render  "
         "[bold]w[/bold]=view  "
+        "[bold]e[/bold]=export  "
         "[bold]m[/bold]=metadata  "
         "[bold]h[/bold]=help  "
         "[bold]k[/bold]=cache  "
@@ -244,6 +266,12 @@ def render_view(
         f"View state: view {viewport_label} · zoom {zoom_level}x · brightness {brightness} · contrast {contrast} · render {render_mode} · metadata {'on' if show_meta else 'off'} · help {'on' if show_help else 'off'} · cache {'on' if show_cache else 'off'} · {source_state}",
         style="dim",
     )
+
+    return {
+        "ascii_lines": ascii_lines,
+        "frame_width": frame_width,
+        "viewport_label": viewport_label,
+    }
 
 
 def run_query_once():
@@ -324,7 +352,7 @@ def viewer_loop(target, survey, field_preset, fetch_result, metadata):
         active_fetch_result = source_fetch_result
         active_field_preset = source_field_preset
 
-        render_view(
+        last_render = render_view(
             fetch_result=active_fetch_result,
             target=target,
             survey=survey,
@@ -340,7 +368,7 @@ def viewer_loop(target, survey, field_preset, fetch_result, metadata):
             show_cache=show_cache,
         )
 
-        command = console.input("\nPress key then Enter [z/b/c/r/w/m/h/k/n/q]: ").strip().lower()
+        command = console.input("\nPress key then Enter [z/b/c/r/w/e/m/h/k/n/q]: ").strip().lower()
 
         if command in {"z", "zoom"}:
             zoom_level += 1
@@ -358,6 +386,35 @@ def viewer_loop(target, survey, field_preset, fetch_result, metadata):
 
         elif command in {"w", "wide", "view", "view size", "viewport"}:
             viewport_mode = cycle_value(viewport_mode, ["small", "wide"])
+
+        elif command in {"e", "export", "png", "image", "save"}:
+            include_metadata = ask_export_metadata()
+
+            if include_metadata is not None:
+                overlay = None
+
+                if include_metadata:
+                    overlay = metadata_overlay_lines(
+                        target,
+                        survey,
+                        active_fetch_result,
+                        metadata,
+                    )
+
+                output_path = export_view_png(
+                    ascii_lines=last_render["ascii_lines"],
+                    target=target,
+                    survey=survey,
+                    fetch_result=active_fetch_result,
+                    metadata=metadata,
+                    render_mode=render_mode,
+                    viewport_mode=viewport_mode,
+                    frame_width=last_render["frame_width"],
+                    include_metadata=include_metadata,
+                    overlay_lines=overlay,
+                )
+
+                console.print(f"[green]Exported PNG:[/green] {output_path}")
 
         elif command in {"m", "meta", "metadata"}:
             show_meta = not show_meta
@@ -387,7 +444,7 @@ def viewer_loop(target, survey, field_preset, fetch_result, metadata):
             continue
 
         else:
-            console.print("Unknown command. Type z, b, c, r, m, h, k, n, or q, then press Enter.", style="red")
+            console.print("Unknown command. Type z, b, c, r, w, e, m, h, k, n, or q, then press Enter.", style="red")
 
 
 def run_app():
