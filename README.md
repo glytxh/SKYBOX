@@ -1,41 +1,68 @@
-# SKYBOX
+# SKYBOX v1.2 — Render Modes
 
-SKYBOX v1.1 Reticle
+**SKYBOX** is a small terminal-based FITS viewer for public sky-survey data. It resolves an object name or ICRS coordinate, pulls a Pan-STARRS cutout, and renders it as coloured ASCII inside the terminal.
 
-A Mac-first terminal FITS viewer for Pan-STARRS sky-survey data.
+It is not a scientific reduction pipeline. It is a lightweight astronomical viewing instrument: part sky atlas, part terminal toy, part public-survey data window.
 
-SKYBOX resolves an object name or ICRS coordinate, fetches a Pan-STARRS FITS cutout, and renders it as a rich ASCII skybox in the terminal.
+## New in v1.2
 
+- Added live render-mode cycling with `r`
+- Added `basic`, `rich`, and `block` render styles
+- Improved colour handling for blend mode
+- Updated title/menu presentation
+- Updated internal versioning to `1.2`
+- Added cleaner in-app help for render controls
 
-## Bands
+## Render modes
 
-- short: Pan-STARRS g
-- mid: Pan-STARRS i
-- long: Pan-STARRS y
-- blend: Pan-STARRS DR1 colour HiPS
+| Mode | Description |
+|---|---|
+| `basic` | Original punctuation-style ASCII render |
+| `rich` | Denser texture for more image detail |
+| `block` | Shaded block mosaic using `░▒▓█` characters |
 
-Blend mode only works with atlas or survey field scales.
+## Band modes
 
-## Fields
+| Mode | Data | Use |
+|---|---|---|
+| `short` | Pan-STARRS `g` | Blue-green optical view |
+| `mid` | Pan-STARRS `i` | Mid optical view |
+| `long` | Pan-STARRS `y` | Red / near-infrared view |
+| `blend` | Pan-STARRS DR1 colour | Composite colour/luminance view |
 
-- core
-- field
-- wide
-- atlas
-- survey
+## Controls
 
-## Viewer controls
+| Key | Action |
+|---|---|
+| `z` | Cycle zoom |
+| `b` | Cycle brightness |
+| `c` | Cycle contrast |
+| `r` | Cycle render mode |
+| `m` | Toggle metadata |
+| `h` | Toggle help |
+| `k` | Show cache |
+| `n` | New target |
+| `q` | Quit |
 
-- z: zoom
-- b: brightness
-- c: contrast
-- m: metadata overlay
-- h: help overlay
-- k: cache overlay
-- n: new target
-- q: quit
+## Good test targets
 
-## Cache
+| Target | Suggested mode | Notes |
+|---|---|---|
+| `m101` | `blend` / `atlas` | Large spiral galaxy |
+| `m51` | `blend` / `atlas` | Whirlpool galaxy |
+| `m13` | `mid` / `field` | Globular cluster |
+| `ngc 891` | `mid` / `field` | Edge-on galaxy |
+| `m42` | `blend` / `survey` | Bright nebula region |
+| `m31` | `blend` / `survey` | Large galaxy field |
+| `pleiades` | `short` / `survey` | Bright star field |
 
-SKYBOX keeps only the newest five FITS files in cache/fits.
+## Install
 
+```bash
+git clone https://github.com/glytxh/SKYBOX.git
+cd SKYBOX
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python3 doctor.py
+python3 run.py
