@@ -1,4 +1,4 @@
 APP_NAME = "SKYBOX"
-APP_VERSION = "1.1"
-APP_CODENAME = "Reticle"
+APP_VERSION = "1.2"
+APP_CODENAME = "Render Modes"
 APP_TAGLINE = "Pan-STARRS terminal FITS viewer"
